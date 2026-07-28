@@ -1,4 +1,5 @@
 import { humanize } from "eez-studio-shared/string";
+import { t } from "eez-studio-shared/i18n";
 import * as notification from "eez-studio-ui/notification";
 
 import {
@@ -402,11 +403,11 @@ export function humanizePropertyName(object: IEezObject, propertyName: string) {
     const property = findPropertyByNameInObject(object, propertyName);
     if (property && property.displayName) {
         if (typeof property.displayName == "string") {
-            return property.displayName;
+            return t(property.displayName);
         }
-        return property.displayName(object);
+        return t(property.displayName(object));
     }
-    return humanize(propertyName);
+    return t(humanize(propertyName));
 }
 
 export function getAncestorOfType<T extends EezObject = EezObject>(

@@ -13,7 +13,8 @@ import DatabaseConstructor from "better-sqlite3";
 
 import { getUserDataPath } from "eez-studio-shared/util-electron";
 import { SETTINGS_FILE_NAME, DEFAULT_DB_NAME } from "eez-studio-shared/conf";
-import { DATE_FORMATS, TIME_FORMATS } from "eez-studio-shared/i10n";
+import { DATE_FORMATS, TIME_FORMATS, DEFAULT_LOCALE } from "eez-studio-shared/i10n";
+import { changeLanguage, initI18n } from "eez-studio-shared/i18n";
 
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -174,6 +175,10 @@ class Settings {
             this.locale = settingsJs.locale;
         }
 
+        if (!this.locale) {
+            this.locale = DEFAULT_LOCALE;
+        }
+
         if (settingsJs.dateFormat != undefined) {
             this.dateFormat = settingsJs.dateFormat;
         }
@@ -200,7 +205,8 @@ export const settings = new Settings();
 ////////////////////////////////////////////////////////////////////////////////
 
 export async function loadSettings() {
-    settings.loadSettings();
+    await settings.loadSettings();
+    initI18n(getLocale());
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -407,11 +413,17 @@ ipcMain.on("setDbPaths", function (event: any, dbPaths: IDbPath[]) {
 ////////////////////////////////////////////////////////////////////////////////
 
 export function getLocale() {
-    return settings.locale || app.getLocale();
+    return settings.locale || DEFAULT_LOCALE;
 }
 
 export function setLocale(value: string) {
     runInAction(() => (settings.locale = value));
+    changeLanguage(value);
+
+    const { BrowserWindow } = require("electron") as typeof import("electron");
+    BrowserWindow.getAllWindows().forEach(win => {
+        win.webContents.send("locale-changed", value);
+    });
 }
 
 export function getDateFormat() {
@@ -496,5 +508,3 @@ ipcMain.on(
         setShowComponentsPaletteInProjectEditor(value);
     }
 );
-
-////////////////////////////////////////////////////////////////////////////////

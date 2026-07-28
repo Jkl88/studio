@@ -11,6 +11,7 @@ import { observer } from "mobx-react";
 import { map } from "lodash";
 
 import { humanize } from "eez-studio-shared/string";
+import { t } from "eez-studio-shared/i18n";
 import { UNITS } from "eez-studio-shared/units";
 import { guid } from "eez-studio-shared/guid";
 
@@ -443,10 +444,11 @@ export const GenericDialog = observer(
                             );
                         })
                         .map(fieldProperties => {
-                            const name =
+                            const name = t(
                                 fieldProperties.displayName != undefined
                                     ? fieldProperties.displayName
-                                    : humanize(fieldProperties.name);
+                                    : humanize(fieldProperties.name)
+                            );
                             const value =
                                 this.fieldValues[fieldProperties.name] ?? "";
                             const onChange = this.onChange.bind(
@@ -669,7 +671,7 @@ export const GenericDialog = observer(
                     <Dialog
                         modal={this.modal}
                         backdrop={this.props.backdrop}
-                        title={this.props.dialogDefinition.title}
+                        title={t(this.props.dialogDefinition.title || "")}
                         size={this.props.dialogDefinition.size}
                         okButtonText={this.props.okButtonText}
                         cancelButtonText={this.props.cancelButtonText}

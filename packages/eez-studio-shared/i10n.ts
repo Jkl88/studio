@@ -138,6 +138,8 @@ export const LOCALES = {
     zu: "Zulu"
 };
 
+export const DEFAULT_LOCALE = "ru";
+
 export let getLocale: () => string;
 export let setLocale: (value: string) => void;
 

@@ -25,6 +25,7 @@ import { settings } from "main/settings";
 import { APP_NAME } from "main/util";
 import { undoManager } from "eez-studio-shared/store";
 import { isDev } from "eez-studio-shared/util-electron";
+import { translateMenuItems, t, i18nState } from "eez-studio-shared/i18n";
 
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -125,7 +126,7 @@ function buildMacOSAppMenu(
         label: APP_NAME,
         submenu: [
             {
-                label: "About " + APP_NAME,
+                label: t("About EEZ Studio"),
                 click: showAboutBox
             },
             {
@@ -140,7 +141,7 @@ function buildMacOSAppMenu(
                 type: "separator"
             },
             {
-                label: "Hide " + APP_NAME,
+                label: t("Hide EEZ Studio"),
                 accelerator: "Command+H",
                 role: "hide"
             },
@@ -234,8 +235,11 @@ function buildFileMenu(win: IWindow | undefined) {
                             {
                                 type: "error",
                                 title: "EEZ Studio",
-                                message: "File does not exist.",
-                                detail: `The file '${mru.filePath}' does not seem to exist anymore.`
+                                message: t("File does not exist."),
+                                detail: t(
+                                    "The file '{{path}}' does not seem to exist anymore.",
+                                    { path: mru.filePath }
+                                )
                             }
                         );
                     }
@@ -897,20 +901,32 @@ function buildMenuTemplate(win: IWindow | undefined) {
         menuTemplate.push(buildHelpMenu(win));
     }
 
-    return menuTemplate;
+    return translateMenuItems(menuTemplate);
 }
 
 ////////////////////////////////////////////////////////////////////////////////
 
-autorun(() => {
+function updateApplicationMenu() {
+    let focusedWin: IWindow | undefined;
+
     for (let i = 0; i < windows.length; i++) {
         const win = windows[i];
         if (win.focused) {
-            let menuTemplate = buildMenuTemplate(win);
-            let menu = Menu.buildFromTemplate(menuTemplate);
-            Menu.setApplicationMenu(menu);
+            focusedWin = win;
+            break;
         }
     }
+
+    const menuTemplate = buildMenuTemplate(focusedWin);
+    const menu = Menu.buildFromTemplate(menuTemplate);
+    Menu.setApplicationMenu(menu);
+}
+
+autorun(() => {
+    void settings.locale;
+    void i18nState.version;
+
+    updateApplicationMenu();
 });
 
 ////////////////////////////////////////////////////////////////////////////////

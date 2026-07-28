@@ -7,8 +7,13 @@ import { dialog, getCurrentWindow } from "@electron/remote";
 import { formatBytes } from "eez-studio-shared/formatBytes";
 import { guid } from "eez-studio-shared/guid";
 import { capitalize } from "eez-studio-shared/string";
+import { t } from "eez-studio-shared/i18n";
 
 import { ListContainer, List, IListNode } from "eez-studio-ui/list";
+
+function localizedPropertyName(name?: string) {
+    return name ? t(name) : name;
+}
 
 export const PropertyEnclosure = observer(
     class PropertyEnclosure extends React.Component<
@@ -66,7 +71,7 @@ export const StaticProperty = observer(
                 (this.props.value && this.props.value.toString()) || "";
             return (
                 <PropertyEnclosure>
-                    <td className="PropertyName">{this.props.name}</td>
+                    <td className="PropertyName">{localizedPropertyName(this.props.name)}</td>
                     <td
                         className={classNames(
                             "StaticPropertyValue",
@@ -93,7 +98,7 @@ export const BytesProperty = observer(
         render() {
             return (
                 <PropertyEnclosure>
-                    <td className="PropertyName">{this.props.name}</td>
+                    <td className="PropertyName">{localizedPropertyName(this.props.name)}</td>
                     <td className="StaticPropertyValue">
                         {formatBytes(this.props.value)}
                     </td>
@@ -196,7 +201,7 @@ export const InputProperty = observer(
                             htmlFor={id}
                             title={this.props.title}
                         >
-                            {this.props.name}
+                            {localizedPropertyName(this.props.name)}
                         </label>
                     </td>,
 
@@ -292,7 +297,7 @@ export const MultilineTextInputProperty = observer(
                             className="PropertyName col-form-label"
                             htmlFor={id}
                         >
-                            {this.props.name}
+                            {localizedPropertyName(this.props.name)}
                         </label>
                     </td>,
 
@@ -488,7 +493,7 @@ export const SelectProperty = observer(
                             className="PropertyName col-form-label"
                             htmlFor={id}
                         >
-                            {this.props.name}
+                            {localizedPropertyName(this.props.name)}
                         </label>
                     </td>
 
@@ -559,7 +564,7 @@ export const SelectFromListProperty = observer(
                                 className="PropertyName col-form-label"
                                 htmlFor={id}
                             >
-                                {this.props.name}
+                                {localizedPropertyName(this.props.name)}
                             </label>
                         )}
 
@@ -597,7 +602,7 @@ export const BooleanProperty = observer(
             if (this.props.checkboxStyleSwitch) {
                 return (
                     <PropertyEnclosure style={this.props.style}>
-                        <td>{this.props.name}</td>
+                        <td>{localizedPropertyName(this.props.name)}</td>
                         <td>
                             <div
                                 className="form-check form-switch"
@@ -637,7 +642,7 @@ export const BooleanProperty = observer(
                                         }
                                         role="switch"
                                     />
-                                    {this.props.name}
+                                    {localizedPropertyName(this.props.name)}
                                 </label>
                             </div>
                         </td>
@@ -769,7 +774,7 @@ export const KeybindingProperty = observer(
                             className="PropertyName col-form-label"
                             htmlFor={id}
                         >
-                            {this.props.name}
+                            {localizedPropertyName(this.props.name)}
                         </label>
                     </td>,
                     <td key="value">{input}</td>
@@ -927,7 +932,7 @@ export const ButtonProperty = observer(
                             onClick={value => this.props.onChange(1)}
                             disabled={this.props.disabled}
                         >
-                            {this.props.name}
+                            {localizedPropertyName(this.props.name)}
                         </button>
                     </td>
                 </tr>

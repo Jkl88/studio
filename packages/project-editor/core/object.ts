@@ -2,6 +2,7 @@ import React from "react";
 import { observable, makeObservable } from "mobx";
 
 import { humanize } from "eez-studio-shared/string";
+import { t } from "eez-studio-shared/i18n";
 import { Rect } from "eez-studio-shared/geometry";
 import { isArray, objectClone } from "eez-studio-shared/util";
 
@@ -987,11 +988,11 @@ export function getObjectPropertyDisplayName(
 ) {
     if (propertyInfo.displayName) {
         if (typeof propertyInfo.displayName === "string") {
-            return propertyInfo.displayName;
+            return t(propertyInfo.displayName);
         }
-        return propertyInfo.displayName(object);
+        return t(propertyInfo.displayName(object));
     }
-    return humanize(propertyInfo.name);
+    return t(humanize(propertyInfo.name));
 }
 
 export function getRootObject(object: IEezObject) {

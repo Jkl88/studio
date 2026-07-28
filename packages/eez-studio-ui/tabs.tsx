@@ -4,6 +4,7 @@ import classNames from "classnames";
 
 import { Loader } from "eez-studio-ui/loader";
 import { Icon } from "eez-studio-ui/icon";
+import { t, i18nState } from "eez-studio-shared/i18n";
 
 import { Menu, MenuItem } from "@electron/remote";
 
@@ -95,7 +96,17 @@ export const TabView = observer(
         };
 
         render() {
+            void i18nState.version;
+
             const { tab } = this.props;
+
+            const tabTitle =
+                typeof tab.title === "string" &&
+                (tab.id === "home" ||
+                    tab.id === "history" ||
+                    tab.id === "shortcutsAndGroups")
+                    ? t(tab.title)
+                    : tab.title;
 
             let className = classNames("EezStudio_Tab", {
                 active: tab.active,
@@ -108,7 +119,7 @@ export const TabView = observer(
                     <i
                         className="close material-icons"
                         onClick={this.onClose}
-                        title="Close tab"
+                        title={t("Close tab")}
                     >
                         close
                     </i>
@@ -123,15 +134,15 @@ export const TabView = observer(
             }
 
             let title;
-            if (typeof tab.title === "string") {
+            if (typeof tabTitle === "string") {
                 title = (
                     <>
                         {icon}
                         <span
                             className="title"
-                            title={tab.tooltipTitle || tab.title}
+                            title={tab.tooltipTitle || tabTitle}
                         >
-                            {tab.title}
+                            {tabTitle}
                         </span>
                     </>
                 );
@@ -139,7 +150,7 @@ export const TabView = observer(
                 title = (
                     <>
                         {icon}
-                        {tab.title}
+                        {tabTitle}
                     </>
                 );
             }

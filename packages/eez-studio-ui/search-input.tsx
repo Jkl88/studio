@@ -1,6 +1,7 @@
 import React from "react";
 import classNames from "classnames";
 import { IconAction } from "./action";
+import { t } from "eez-studio-shared/i18n";
 
 export class SearchInput extends React.Component<{
     searchText: string;
@@ -24,7 +25,7 @@ export class SearchInput extends React.Component<{
                 {this.props.searchText && (
                     <IconAction
                         icon="material:close"
-                        title="Clear Search"
+                        title={t("Clear Search")}
                         className="EezStudio_SearchInput_Clear"
                         onClick={this.props.onClear}
                     ></IconAction>

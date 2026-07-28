@@ -17,6 +17,7 @@ import * as path from "path";
 import { dockerBuildState } from "project-editor/lvgl/docker-build/docker-build-state";
 
 import { onSimpleMessage } from "eez-studio-shared/util-renderer";
+import { t } from "eez-studio-shared/i18n";
 
 import {
     loadPreinstalledExtension,
@@ -799,11 +800,13 @@ export class ProjectEditorTab implements IHomeTab {
                 return path.basename(this.filePath, ".eez-project");
             }
             return (
-                path.basename(this.filePath, ".eez-dashboard") + " dashboard"
+                path.basename(this.filePath, ".eez-dashboard") +
+                " " +
+                t("dashboard")
             );
         }
 
-        return "Untitled project";
+        return t("Untitled project");
     }
 
     get tooltipTitle() {

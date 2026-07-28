@@ -5,6 +5,7 @@ import * as FlexLayout from "flexlayout-react";
 
 import { FlexLayoutContainer } from "eez-studio-ui/FlexLayout";
 import { Icon } from "eez-studio-ui/icon";
+import { t } from "eez-studio-shared/i18n";
 
 import { getProperty, getParent, IEezObject } from "project-editor/core/object";
 import {
@@ -177,8 +178,10 @@ const ProjectFeature = observer(
                                 size={32}
                                 style={{ marginRight: 5 }}
                             />
-                            {this.props.projectFeature.displayName ||
-                                this.props.projectFeature.name}
+                            {t(
+                                this.props.projectFeature.displayName ||
+                                    this.props.projectFeature.name
+                            )}
                         </h5>
                         <p className="card-text">
                             {this.props.projectFeature.description}.

@@ -4,6 +4,7 @@ import { observer } from "mobx-react";
 import classNames from "classnames";
 
 import { Icon } from "eez-studio-ui/icon";
+import { t, i18nState } from "eez-studio-shared/i18n";
 
 import { Settings } from "home/settings";
 import {
@@ -101,6 +102,8 @@ const HOME_TAB_INSTRUMENTS_ICON = (
 export const Home = observer(
     class Home extends React.Component {
         render() {
+            void i18nState.version;
+
             return (
                 <div className="EezStudio_HomeTab">
                     <div className="EezStudio_HomeTab_Header">
@@ -116,12 +119,12 @@ export const Home = observer(
                                 onClick={action(() => {
                                     homeTabStore.activeTab = "open";
                                 })}
-                                title={
+                                title={t(
                                     "Open a local project or select one from the recent list"
-                                }
+                                )}
                             >
                                 <Icon icon={HOME_TAB_OPEN_ICON} size={32} />{" "}
-                                Open
+                                {t("Open")}
                             </div>
                             <div
                                 className={classNames(
@@ -134,10 +137,10 @@ export const Home = observer(
                                 onClick={action(() => {
                                     homeTabStore.activeTab = "create";
                                 })}
-                                title="Create a new project"
+                                title={t("Create a new project")}
                             >
                                 <Icon icon={HOME_TAB_CREATE_ICON} size={32} />{" "}
-                                Create
+                                {t("Create")}
                             </div>
                             <div
                                 className={classNames(
@@ -150,10 +153,12 @@ export const Home = observer(
                                 onClick={action(() => {
                                     homeTabStore.activeTab = "examples";
                                 })}
-                                title="Example projects ready to run or edit"
+                                title={t(
+                                    "Example projects ready to run or edit"
+                                )}
                             >
                                 <Icon icon={HOME_TAB_EXAMPLES_ICON} size={32} />{" "}
-                                Examples
+                                {t("Examples")}
                             </div>
                             {/*<div
                                 className={classNames(
@@ -182,13 +187,13 @@ export const Home = observer(
                                 onClick={action(() => {
                                     homeTabStore.activeTab = "instruments";
                                 })}
-                                title="Instruments manager"
+                                title={t("Instruments manager")}
                             >
                                 <Icon
                                     icon={HOME_TAB_INSTRUMENTS_ICON}
                                     size={32}
                                 />{" "}
-                                Instruments
+                                {t("Instruments")}
                             </div>
                             <div
                                 className={classNames(
@@ -202,7 +207,7 @@ export const Home = observer(
                                 onClick={action(() => {
                                     homeTabStore.activeTab = "extensions";
                                 })}
-                                title="Extensions manager"
+                                title={t("Extensions manager")}
                             >
                                 <Icon
                                     icon={"material:extension"}
@@ -212,7 +217,7 @@ export const Home = observer(
                                             .newVersionsInAllSections.length > 0
                                     }
                                 />
-                                Extensions
+                                {t("Extensions")}
                             </div>
                             <div
                                 className={classNames(
@@ -225,7 +230,7 @@ export const Home = observer(
                                 onClick={action(() => {
                                     homeTabStore.activeTab = "settings";
                                 })}
-                                title="Global user settings"
+                                title={t("Global user settings")}
                             >
                                 <Icon
                                     icon={"material:settings"}
@@ -235,7 +240,7 @@ export const Home = observer(
                                             ?.isCompactDatabaseAdvisable
                                     }
                                 />
-                                Settings
+                                {t("Settings")}
                             </div>
                         </div>
                         {/*

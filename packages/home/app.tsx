@@ -25,12 +25,17 @@ import { FlexLayoutContainer } from "eez-studio-ui/FlexLayout";
 import { layoutModels } from "eez-studio-ui/side-dock";
 import { Icon } from "eez-studio-ui/icon";
 import { homeTabStore } from "home/home-tab";
+import { i18nState } from "eez-studio-shared/i18n";
+import { settingsController } from "home/settings";
 
 ////////////////////////////////////////////////////////////////////////////////
 
 const MainContent = observer(
     class Content extends React.Component {
         render() {
+            void i18nState.version;
+            void settingsController.i18nVersion;
+
             return (
                 <VerticalHeaderWithBody style={{ height: "100%" }}>
                     <Header className="EezStudio_AppHeader">
@@ -93,6 +98,9 @@ export const App = observer(
         };
 
         render() {
+            void i18nState.version;
+            void settingsController.i18nVersion;
+
             let content;
             if (
                 !scrapbookModel.isVisible ||

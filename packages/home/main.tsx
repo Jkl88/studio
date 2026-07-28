@@ -8,6 +8,8 @@ import { observer } from "mobx-react";
 
 import { loadExtensions } from "eez-studio-shared/extensions/extensions";
 import { getNodeModuleFolders } from "eez-studio-shared/extensions/yarn";
+import { initI18n } from "eez-studio-shared/i18n";
+import { getLocale } from "eez-studio-shared/i10n";
 
 import * as notification from "eez-studio-ui/notification";
 import { showAboutBox } from "eez-studio-ui/about-box";
@@ -57,6 +59,11 @@ async function beforeAppClose() {
 
     return true;
 }
+
+ipcRenderer.on("locale-changed", (_sender: any, locale: string) => {
+    const { changeLanguage } = require("eez-studio-shared/i18n") as typeof import("eez-studio-shared/i18n");
+    changeLanguage(locale);
+});
 
 ipcRenderer.on("beforeClose", async () => {
     if (await beforeAppClose()) {
@@ -158,6 +165,8 @@ const Main = observer(
 );
 
 async function main() {
+    initI18n(getLocale(), true);
+
     const params = new URLSearchParams(location.search);
     const buildProject = params.get("build-project") === "1";
 

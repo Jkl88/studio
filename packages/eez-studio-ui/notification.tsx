@@ -7,22 +7,24 @@ import {
     UpdateOptions
 } from "react-toastify";
 
+import { t } from "eez-studio-shared/i18n";
+
 export type ToastId = React.ReactText;
 
 export function info(message: string, options?: ToastOptions) {
-    return toast.info(message, options);
+    return toast.info(t(message), options);
 }
 
 export function success(message: string, options?: ToastOptions) {
-    return toast.success(message, options);
+    return toast.success(t(message), options);
 }
 
 export function warn(message: string, options?: ToastOptions) {
-    return toast.warn(message, options);
+    return toast.warn(t(message), options);
 }
 
 export function error(message: string, options?: ToastOptions) {
-    return toast.error(message, Object.assign({ autoClose: false }, options));
+    return toast.error(t(message), Object.assign({ autoClose: false }, options));
 }
 
 export function update(toastId: ToastId, options: UpdateOptions) {

@@ -3,6 +3,7 @@ import { observer } from "mobx-react";
 import classNames from "classnames";
 
 import { scrollIntoViewIfNeeded } from "eez-studio-shared/dom";
+import { i18nState } from "eez-studio-shared/i18n";
 
 import { Icon } from "eez-studio-ui/icon";
 
@@ -251,6 +252,8 @@ export const PropertyGrid = observer(
         }
 
         render() {
+            void i18nState.version;
+
             let objects = this.objects;
 
             if (objects.length === 0) {
