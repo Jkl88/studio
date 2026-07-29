@@ -102,6 +102,7 @@ export abstract class LVGLPageRuntime {
     lvglCreateContext: LVGLCreateContext;
     tick_value_change_obj: number;
     widgetIndexes: number[];
+    topLayerWidgetIndexes: number[] = [];
     pointers: number[];
     oldStyleObjMap: Map<LVGLStyle, LVGLStyleObjects>;
     styleObjMap: Map<LVGLStyle, LVGLStyleObjects>;
@@ -149,6 +150,7 @@ export abstract class LVGLPageRuntime {
         };        
         this.tick_value_change_obj = 0;
         this.widgetIndexes = [];
+        this.topLayerWidgetIndexes = [];
         this.pointers = [];
         this.oldStyleObjMap = new Map();
         this.styleObjMap = new Map();
@@ -170,6 +172,50 @@ export abstract class LVGLPageRuntime {
 
     get isV9() {
         return this.lvglVersion.startsWith("9.");
+    }
+
+    getLayerTop(): number {
+        const wasm = this.wasm as any;
+        if (this.isV9) {
+            return wasm._lv_layer_top();
+        }
+        const disp = wasm._lv_disp_get_default();
+        return wasm._lv_disp_get_layer_top(disp);
+    }
+
+    clearTopLayer() {
+        const layerTop = this.getLayerTop();
+        const wasm = this.wasm as any;
+        if (wasm._lv_obj_clean) {
+            wasm._lv_obj_clean(layerTop);
+        }
+    }
+
+    /**
+     * Create top-layer widgets that live on other pages so they are visible
+     * while editing / previewing the current page.
+     */
+    createForeignTopLayerWidgets() {
+        const layerTop = this.getLayerTop();
+
+        for (const page of this.project.userPages) {
+            if (page === this.page || page.isUsedAsUserWidget) {
+                continue;
+            }
+
+            for (const widget of page._lvglWidgets) {
+                if (
+                    widget instanceof ProjectEditor.LVGLWidgetClass &&
+                    widget.isTopLayerRoot
+                ) {
+                    try {
+                        widget.lvglCreate(this, layerTop);
+                    } catch (e) {
+                        console.error(e);
+                    }
+                }
+            }
+        }
     }
 
     isLVGLVersion(prefixes: string[]): boolean {
@@ -205,6 +251,12 @@ export abstract class LVGLPageRuntime {
     getCreateWidgetIndex(object: LVGLWidget | Page) {
         const widgetIndex = this.getWidgetIndex(object);
         this.widgetIndexes.push(widgetIndex);
+        if (
+            object instanceof ProjectEditor.LVGLWidgetClass &&
+            object.isOnTopLayer
+        ) {
+            this.topLayerWidgetIndexes.push(widgetIndex);
+        }
         return widgetIndex;
     }
 
@@ -818,10 +870,15 @@ export class LVGLPageEditorRuntime extends LVGLPageRuntime {
 
                         this.createStyles();
 
+                        // Clear previous top-layer children before recreating the page.
+                        this.clearTopLayer();
+
                         const pageObj = this.page.lvglCreate(this, 0);
                         if (!pageObj) {
                             console.error("pageObj is undefined");
                         }
+
+                        this.createForeignTopLayerWidgets();
 
                         for (const callback of this.postCreateCallbacks) {
                             callback();
@@ -1003,7 +1060,10 @@ export class LVGLNonActivePageViewerRuntime extends LVGLPageRuntime {
 
                 this.createStyles();
 
+                this.clearTopLayer();
+
                 const pageObj = this.page.lvglCreate(this, 0);
+                this.createForeignTopLayerWidgets();
                 this.wasm._lvglScreenLoad(-1, pageObj);
                 runInAction(() => {
                     this.page._lvglRuntime = this;
@@ -1104,6 +1164,7 @@ export class LVGLPageViewerRuntime extends LVGLPageRuntime {
             activeObjects: number[] | undefined;
             nonActiveObjects: number[] | undefined;
             widgetIndexes: number[];
+            topLayerWidgetIndexes: number[];
         }
     >();
     pageGroupWidgets = new Map<
@@ -1142,7 +1203,8 @@ export class LVGLPageViewerRuntime extends LVGLPageRuntime {
                 nonActivePageViewerRuntimePageObj: 0,
                 activeObjects: undefined,
                 nonActiveObjects: undefined,
-                widgetIndexes: []
+                widgetIndexes: [],
+                topLayerWidgetIndexes: []
             })
         );
     }
@@ -1314,12 +1376,16 @@ export class LVGLPageViewerRuntime extends LVGLPageRuntime {
             this.wasm._lvglDeleteObject(pageState.pageObj);
 
             for (const widgetIndex of pageState.widgetIndexes) {
-                this.wasm._lvglDeleteObjectIndex(widgetIndex);
+                if (!pageState.topLayerWidgetIndexes.includes(widgetIndex)) {
+                    this.wasm._lvglDeleteObjectIndex(widgetIndex);
+                }
             }
 
             this.wasm._lvglDeletePageFlowState(screenIndex);
 
             pageState.pageObj = 0;
+            // Keep top-layer indexes — those objects remain on lv_layer_top().
+            pageState.widgetIndexes = pageState.topLayerWidgetIndexes.slice();
         }
     }
 
@@ -1342,6 +1408,7 @@ export class LVGLPageViewerRuntime extends LVGLPageRuntime {
         this.createStyles();
 
         this.widgetIndexes = [];
+        this.topLayerWidgetIndexes = [];
 
         const pageObj = this.page.lvglCreate(this, 0);
 
@@ -1361,7 +1428,19 @@ export class LVGLPageViewerRuntime extends LVGLPageRuntime {
         const pageState = this.pageStates.get(this.page)!;
 
         pageState.pageObj = pageObj;
-        pageState.widgetIndexes = this.widgetIndexes;
+        // Merge newly created indexes with preserved top-layer indexes.
+        pageState.widgetIndexes = [
+            ...pageState.widgetIndexes.filter(index =>
+                pageState.topLayerWidgetIndexes.includes(index)
+            ),
+            ...this.widgetIndexes
+        ];
+        pageState.topLayerWidgetIndexes = [
+            ...new Set([
+                ...pageState.topLayerWidgetIndexes,
+                ...this.topLayerWidgetIndexes
+            ])
+        ];
 
         this.wasm._lvglAddScreenLoadedEventHandler(pageObj);
 

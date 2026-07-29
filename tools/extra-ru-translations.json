@@ -62,5 +62,7 @@
   "Date format": "Формат даты",
   "Time format": "Формат времени",
   "Locale": "Язык",
-  "Run dashboard projects from the list of shortcuts": "Запуск панелей из списка ярлыков"
+  "Run dashboard projects from the list of shortcuts": "Запуск панелей из списка ярлыков",
+  "Top layer": "Верхний слой",
+  "Place this widget and its children on LVGL top layer so they stay visible on all screens.": "Разместить виджет и его дочерние элементы на верхнем слое LVGL, чтобы они отображались на всех экранах."
 }

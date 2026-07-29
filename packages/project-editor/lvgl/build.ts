@@ -150,6 +150,17 @@ export class LVGLBuild extends Build {
             if (!page.isUsedAsUserWidget) {
                 this.markObjectAccessibleFromSourceCode(page.lvglScreenWidget!);
             }
+
+            // Top-layer widgets must be accessible so we can keep them alive
+            // across screensLifetimeSupport create/delete cycles.
+            for (const widget of page._lvglWidgets) {
+                if (
+                    widget instanceof ProjectEditor.LVGLWidgetClass &&
+                    widget.isOnTopLayer
+                ) {
+                    this.markObjectAccessibleFromSourceCode(widget);
+                }
+            }
         }
     }
 
@@ -1797,9 +1808,18 @@ export class LVGLBuild extends Build {
                     );
                 }
 
-                // clean object vars
+                // clean object vars (keep top-layer widgets — they persist across screens)
                 for (const objectAccessor of this.objectAccessors) {
-                    build.line(`${objectAccessor} = 0;`);
+                    const keepTopLayer = page._lvglWidgets.some(
+                        widget =>
+                            widget instanceof ProjectEditor.LVGLWidgetClass &&
+                            widget.isOnTopLayer &&
+                            this.isAccessibleFromSourceCode(widget) &&
+                            this.getLvglObjectAccessor(widget) === objectAccessor
+                    );
+                    if (!keepTopLayer) {
+                        build.line(`${objectAccessor} = 0;`);
+                    }
                 }
 
                 // clean state vars

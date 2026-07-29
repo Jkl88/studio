@@ -17,7 +17,8 @@ import {
     IEezObject,
     MessageType,
     getClassInfoLvglProperties,
-    IMessage
+    IMessage,
+    getParent
 } from "project-editor/core/object";
 
 import {
@@ -566,6 +567,8 @@ export class LVGLWidget extends Widget {
 
     children: LVGLWidget[];
 
+    topLayer: boolean;
+
     hiddenFlag: string | boolean;
     hiddenFlagType: LVGLPropertyType;
     clickableFlag: string | boolean;
@@ -611,6 +614,34 @@ export class LVGLWidget extends Widget {
         }
 
         return codeIdentifier;
+    }
+
+    /** True if this widget itself is marked as top layer root. */
+    get isTopLayerRoot(): boolean {
+        return !!this.topLayer && this.type !== "LVGLScreenWidget";
+    }
+
+    /** True if an ancestor widget (not this) is a top-layer root. */
+    get isInsideTopLayer(): boolean {
+        let parent = getParent(this);
+        while (parent) {
+            if (parent instanceof LVGLWidget) {
+                if (parent.isTopLayerRoot) {
+                    return true;
+                }
+                parent = getParent(parent);
+            } else if (Array.isArray(parent)) {
+                parent = getParent(parent);
+            } else {
+                break;
+            }
+        }
+        return false;
+    }
+
+    /** True if this widget or an ancestor is on the top layer. */
+    get isOnTopLayer(): boolean {
+        return this.isTopLayerRoot || this.isInsideTopLayer;
     }
 
     static classInfo = makeDerivedClassInfo(Widget.classInfo, {
@@ -749,6 +780,18 @@ export class LVGLWidget extends Widget {
                 type: PropertyType.Array,
                 typeClass: LVGLWidget,
                 hideInPropertyGrid: true
+            },
+            {
+                name: "topLayer",
+                displayName: "Top layer",
+                type: PropertyType.Boolean,
+                checkboxStyleSwitch: true,
+                propertyGridGroup: generalGroup,
+                disabled: (widget: LVGLWidget) =>
+                    widget instanceof LVGLScreenWidget ||
+                    widget.isInsideTopLayer,
+                formText:
+                    "Place this widget and its children on LVGL top layer so they stay visible on all screens."
             },
             ...makeLvglExpressionProperty("hiddenFlag", "boolean", "input", ["literal", "expression"], {
                 displayName: "Hidden",
@@ -1208,6 +1251,7 @@ export class LVGLWidget extends Widget {
             topUnit: "px",
             widthUnit: "px",
             heightUnit: "px",
+            topLayer: false,
             flagScrollbarMode: "",
             flagScrollDirection: "",
             scrollSnapX: "",
@@ -1317,6 +1361,7 @@ export class LVGLWidget extends Widget {
             widthUnit: observable,
             heightUnit: observable,
             children: observable,
+            topLayer: observable,
             widgetFlags: observable,
             hiddenFlag: observable,
             hiddenFlagType: observable,
@@ -1521,6 +1566,20 @@ export class LVGLWidget extends Widget {
     ////////////////////////////////////////////////////////////////////////////////
 
     override lvglCreate(runtime: LVGLPageRuntime, parentObj: number, customWidget?: ICustomWidgetCreateParams) {
+        // Keep existing top-layer objects across screensLifetimeSupport recreates.
+        if (
+            this.isTopLayerRoot &&
+            this._lvglObj &&
+            !runtime.isEditor &&
+            ProjectEditor.getPage(this) === runtime.page
+        ) {
+            return this._lvglObj;
+        }
+
+        if (this.isTopLayerRoot) {
+            parentObj = runtime.getLayerTop();
+        }
+
         const code = runtime.toLVGLCode;
         code.startWidget(this, parentObj, customWidget);
         this.toLVGLCode(code);
@@ -1531,7 +1590,10 @@ export class LVGLWidget extends Widget {
         code.buildColorParams = undefined;        
 
         const obj = code.obj;
-        if (!runtime.isInsideUserWidget) {
+        if (
+            !runtime.isInsideUserWidget &&
+            ProjectEditor.getPage(this) === runtime.page
+        ) {
             runInAction(() => (this._lvglObj = obj));
         }
 
@@ -1568,8 +1630,24 @@ export class LVGLWidget extends Widget {
 
         const { LV_SIZE_CONTENT, LV_PCT } = getLvglCoord(this);
 
-        let left = this.leftUnit == "%" ? LV_PCT(this.left) : this.left;
-        let top = this.topUnit == "%" ? LV_PCT(this.top) : this.top;
+        let left: number;
+        let top: number;
+
+        if (this.isTopLayerRoot) {
+            const absolute = this.absolutePositionPoint;
+            left =
+                this.leftUnit == "%"
+                    ? LV_PCT(this.left)
+                    : absolute.x;
+            top =
+                this.topUnit == "%"
+                    ? LV_PCT(this.top)
+                    : absolute.y;
+        } else {
+            left = this.leftUnit == "%" ? LV_PCT(this.left) : this.left;
+            top = this.topUnit == "%" ? LV_PCT(this.top) : this.top;
+        }
+
         let width = this.widthUnit == "content" ? LV_SIZE_CONTENT : this.widthUnit == "%" ? LV_PCT(this.width) : this.width;
         let height = this.heightUnit == "content" ? LV_SIZE_CONTENT : this.heightUnit == "%" ? LV_PCT(this.height) : this.height;
 
@@ -1583,6 +1661,17 @@ export class LVGLWidget extends Widget {
     lvglBuild(build: LVGLBuild): void {
         if (this.identifier) {
             build.line(`// ${this.identifier}`);
+        }
+
+        const skipIfAlreadyCreated =
+            this.isTopLayerRoot &&
+            build.project.settings.build.screensLifetimeSupport &&
+            build.isAccessibleFromSourceCode(this);
+
+        if (skipIfAlreadyCreated) {
+            build.blockStart(
+                `if (!${build.getLvglObjectAccessor(this)}) {`
+            );
         }
 
         const code = build.toLVGLCode;
@@ -1604,11 +1693,37 @@ export class LVGLWidget extends Widget {
 
             build.blockEnd("}");
         }
+
+        if (skipIfAlreadyCreated) {
+            build.blockEnd("}");
+        }
     }
 
     getLvglBuildRect() {
-        let left = this.leftUnit == "%" ? `LV_PCT(${Math.round(this.left)})` : Math.round(this.left);
-        let top = this.topUnit == "%" ? `LV_PCT(${Math.round(this.top)})` : Math.round(this.top);
+        let left: string | number;
+        let top: string | number;
+
+        if (this.isTopLayerRoot) {
+            const absolute = this.absolutePositionPoint;
+            left =
+                this.leftUnit == "%"
+                    ? `LV_PCT(${Math.round(this.left)})`
+                    : Math.round(absolute.x);
+            top =
+                this.topUnit == "%"
+                    ? `LV_PCT(${Math.round(this.top)})`
+                    : Math.round(absolute.y);
+        } else {
+            left =
+                this.leftUnit == "%"
+                    ? `LV_PCT(${Math.round(this.left)})`
+                    : Math.round(this.left);
+            top =
+                this.topUnit == "%"
+                    ? `LV_PCT(${Math.round(this.top)})`
+                    : Math.round(this.top);
+        }
+
         let width = this.widthUnit == "content" ? "LV_SIZE_CONTENT" : this.widthUnit == "%" ? `LV_PCT(${Math.round(this.width)})` : Math.round(this.width);
         let height = this.heightUnit == "content" ? "LV_SIZE_CONTENT" : this.heightUnit == "%" ? `LV_PCT(${Math.round(this.height)})` : Math.round(this.height);
         return { left, top, width, height };

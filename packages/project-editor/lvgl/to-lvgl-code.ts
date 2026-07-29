@@ -974,9 +974,15 @@ export class BuildLVGLCode implements LVGLCode {
     }
 
     createObjectWithoutPosAndSize(createObjectFunction: string, ...args: any[]) {
+        const parentExpr = this.widget.isTopLayerRoot
+            ? this.isV9
+                ? "lv_layer_top()"
+                : "lv_disp_get_layer_top(lv_disp_get_default())"
+            : "parent_obj";
+
         this.build.line(
             `lv_obj_t *obj = ${createObjectFunction}(${[
-                "parent_obj",
+                parentExpr,
                 ...args
             ].join(", ")});`
         );
@@ -987,9 +993,15 @@ export class BuildLVGLCode implements LVGLCode {
     }
 
     getObject(getObjectFunction: string, ...args: any[]) {
+        const parentExpr = this.widget.isTopLayerRoot
+            ? this.isV9
+                ? "lv_layer_top()"
+                : "lv_disp_get_layer_top(lv_disp_get_default())"
+            : "parent_obj";
+
         this.build.line(
             `lv_obj_t *obj = ${getObjectFunction}(${[
-                "parent_obj",
+                parentExpr,
                 ...args
             ].join(", ")});`
         );
