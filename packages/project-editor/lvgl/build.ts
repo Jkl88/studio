@@ -117,6 +117,7 @@ export class LVGLBuild extends Build {
     objectAccessors: string[] | undefined;
 
     tickCallbacks: (() => void)[];
+    topLayerTickCallbacks: { page: Page; callback: () => void }[] = [];
     eventHandlers = new Map<
         LVGLWidget,
         { eventName: string; callback: () => void }[]
@@ -1223,7 +1224,21 @@ export class LVGLBuild extends Build {
         return varName;
     }
 
-    addTickCallback(callback: () => void) {
+    addTickCallback(callback: () => void, widget?: LVGLWidget) {
+        // Prefer the explicit widget (from addToTick). Falling back to
+        // toLVGLCode.widget is unsafe for page-level callbacks.
+        const tickWidget = widget;
+
+        // Top-layer widgets stay visible on all screens — their ticks must live
+        // in tick_top_layer(), not in the owning screen's tick_screen_*.
+        if (tickWidget?.isOnTopLayer && !this.isFirstPass) {
+            this.topLayerTickCallbacks.push({
+                page: ProjectEditor.getPage(tickWidget),
+                callback
+            });
+            return;
+        }
+
         this.tickCallbacks.push(callback);
     }
 
@@ -1458,6 +1473,7 @@ export class LVGLBuild extends Build {
         }
         build.line("void tick_screen_by_id(enum ScreensEnum screenId);");
         build.line("void tick_screen(int screen_index);");
+        build.line("void tick_top_layer();");
 
         build.line("");
 
@@ -1556,6 +1572,8 @@ export class LVGLBuild extends Build {
     async buildScreensDef() {
         this.startBuild();
         const build = this;
+
+        this.topLayerTickCallbacks = [];
 
         build.line(`#include <string.h>`);
         build.line("");
@@ -1846,8 +1864,17 @@ export class LVGLBuild extends Build {
                     cleanStateVars(page, build.getScreenStateVarName(page));
                 }
 
-                // delete flow state
-                if (build.project.projectTypeTraits.hasFlowSupport) {
+                // Keep flow state if the page owns top-layer widgets — their
+                // expressions still need to evaluate while other screens are shown.
+                const pageHasTopLayer = page._lvglWidgets.some(
+                    widget =>
+                        widget instanceof ProjectEditor.LVGLWidgetClass &&
+                        widget.isOnTopLayer
+                );
+                if (
+                    build.project.projectTypeTraits.hasFlowSupport &&
+                    !pageHasTopLayer
+                ) {
                     build.line(
                         `deletePageFlowState(${build.assets.getFlowIndex(page)});`
                     );
@@ -1948,10 +1975,42 @@ export class LVGLBuild extends Build {
         }
         build.blockEnd("};");
 
+        // Always-running tick for top-layer widgets (visible on every screen).
+        build.line("");
+        build.blockStart("void tick_top_layer() {");
+        {
+            const byPage = new Map<Page, (() => void)[]>();
+            for (const { page, callback } of this.topLayerTickCallbacks) {
+                let list = byPage.get(page);
+                if (!list) {
+                    list = [];
+                    byPage.set(page, list);
+                }
+                list.push(callback);
+            }
+            for (const [page, callbacks] of byPage) {
+                build.blockStart("{");
+                if (build.project.projectTypeTraits.hasFlowSupport) {
+                    const flowIndex = build.assets.getFlowIndex(page);
+                    build.line(
+                        `void *flowState = getFlowState(0, ${flowIndex});`
+                    );
+                    build.line(`(void)flowState;`);
+                }
+                for (const callback of callbacks) {
+                    callback();
+                }
+                build.blockEnd("}");
+            }
+        }
+        build.blockEnd("}");
+        build.line("");
+
         build.blockStart("void tick_screen(int screen_index) {");
         build.blockStart(`if (screen_index >= 0 && screen_index < ${this.userPages.length}) {`)
         build.line("tick_screen_funcs[screen_index]();");
         build.blockEnd(`}`)
+        build.line("tick_top_layer();");
         build.blockEnd("}");
 
         build.blockStart("void tick_screen_by_id(enum ScreensEnum screenId) {");

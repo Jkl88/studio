@@ -1359,7 +1359,7 @@ export class BuildLVGLCode implements LVGLCode {
             this.isTick = false;
 
             build.blockEnd(`}`);
-        });
+        }, widget);
     }
 
     addToTickMulti(
@@ -1400,7 +1400,7 @@ export class BuildLVGLCode implements LVGLCode {
             this.isTick = false;
 
             build.blockEnd(`}`);
-        });
+        }, widget);
     }
 
     tickChangeStart() {

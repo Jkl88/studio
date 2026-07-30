@@ -455,7 +455,7 @@ export class LVGLUserWidgetWidget extends LVGLWidget {
                         );
                     }
                 }
-            });
+            }, this);
         } else {
             const simulatorCode = code as SimulatorLVGLCode;
 

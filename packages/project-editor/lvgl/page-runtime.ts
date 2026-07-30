@@ -1181,6 +1181,7 @@ export class LVGLPageViewerRuntime extends LVGLPageRuntime {
     tickCallbacks: {
         page: Page;
         flowState: number;
+        isTopLayer: boolean;
         callback: (flowState: number) => void;
     }[] = [];
     eventHandlers: {
@@ -1363,7 +1364,8 @@ export class LVGLPageViewerRuntime extends LVGLPageRuntime {
             );
 
             this.tickCallbacks = this.tickCallbacks.filter(
-                tickCallback => tickCallback.page != page
+                tickCallback =>
+                    tickCallback.page != page || tickCallback.isTopLayer
             );
 
             this.eventHandlers = this.eventHandlers.filter(
@@ -1381,7 +1383,10 @@ export class LVGLPageViewerRuntime extends LVGLPageRuntime {
                 }
             }
 
-            this.wasm._lvglDeletePageFlowState(screenIndex);
+            // Keep flow state while top-layer widgets from this page are still live.
+            if (pageState.topLayerWidgetIndexes.length === 0) {
+                this.wasm._lvglDeletePageFlowState(screenIndex);
+            }
 
             pageState.pageObj = 0;
             // Keep top-layer indexes — those objects remain on lv_layer_top().
@@ -1635,13 +1640,20 @@ export class LVGLPageViewerRuntime extends LVGLPageRuntime {
         this.tickCallbacks.push({
             page: this.page,
             flowState: this.lvglCreateContext.flowState,
+            isTopLayer: !!(
+                this.toLVGLCode?.widget &&
+                this.toLVGLCode.widget.isOnTopLayer
+            ),
             callback
         });
     }
 
     lvglScreenTick() {
         for (let tickCallback of this.tickCallbacks) {
-            if (this.runtime.selectedPage == tickCallback.page) {
+            if (
+                this.runtime.selectedPage == tickCallback.page ||
+                tickCallback.isTopLayer
+            ) {
                 tickCallback.callback(tickCallback.flowState);
             }
         }
