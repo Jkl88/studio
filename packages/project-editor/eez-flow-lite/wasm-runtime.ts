@@ -216,12 +216,15 @@ export abstract class EezFlowLiteWasmRuntime extends RuntimeBase {
                 delay =>
                     delay.component == component && delay.flowState == flowState
             );
+            const isReset = connectionLine?.input === "reset";
             if (!delay) {
                 this.delays.push({
                     time: this.getTick() + milliseconds,
                     flowState,
                     component
                 });
+            } else if (isReset) {
+                delay.time = this.getTick() + milliseconds;
             }
 
             return;

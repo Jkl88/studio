@@ -2863,7 +2863,41 @@ struct DelayComponenentExecutionState : public ComponenentExecutionState {
 	uint32_t waitUntil;
 };
 void executeDelayComponent(FlowState *flowState, unsigned componentIndex) {
+	auto component = flowState->flow->components[componentIndex];
 	auto delayComponentExecutionState = (DelayComponenentExecutionState *)flowState->componenentExecutionStates[componentIndex];
+
+	// Optional "reset" sequence input (index 1) restarts the countdown.
+	static const unsigned RESET_INPUT_INDEX = 1;
+	bool reset = false;
+	if (component->inputs.count > RESET_INPUT_INDEX) {
+		auto resetInputIndex = component->inputs[RESET_INPUT_INDEX];
+		if (flowState->values[resetInputIndex].type != VALUE_TYPE_UNDEFINED) {
+			reset = true;
+		}
+	}
+
+	if (reset) {
+		Value value;
+		if (!evalProperty(flowState, componentIndex, defs_v3::DELAY_ACTION_COMPONENT_PROPERTY_MILLISECONDS, value, FlowError::Property("Delay", "Milliseconds"))) {
+			return;
+		}
+		double milliseconds = value.toDouble();
+		if (isNaN(milliseconds)) {
+			throwError(flowState, componentIndex, FlowError::PropertyInvalid("Delay", "Milliseconds"));
+			return;
+		}
+		if (!delayComponentExecutionState) {
+			delayComponentExecutionState = allocateComponentExecutionState<DelayComponenentExecutionState>(flowState, componentIndex);
+		}
+		delayComponentExecutionState->waitUntil = millis() + (uint32_t)floor(milliseconds);
+		if (!isInQueue(flowState, componentIndex)) {
+			if (!addToQueue(flowState, componentIndex, -1, -1, -1, true)) {
+				return;
+			}
+		}
+		return;
+	}
+
 	if (!delayComponentExecutionState) {
 		Value value;
 		if (!evalProperty(flowState, componentIndex, defs_v3::DELAY_ACTION_COMPONENT_PROPERTY_MILLISECONDS, value, FlowError::Property("Delay", "Milliseconds"))) {

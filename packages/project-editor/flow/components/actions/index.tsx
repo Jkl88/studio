@@ -2621,6 +2621,12 @@ export class DelayActionComponent extends ActionComponent {
                 isSequenceInput: true,
                 isOptionalInput: false
             },
+            {
+                name: "reset",
+                type: "any" as ValueType,
+                isSequenceInput: true,
+                isOptionalInput: true
+            },
             ...super.getInputs()
         ];
     }
